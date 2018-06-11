@@ -35,20 +35,19 @@ module Actors =
                 | "exit" -> Exit
                 | _ -> Message(str)
 
-            let msg input =
-                match input with
-                | EmptyMessage -> 
-                    Message (InputError ("No input received.", ErrorType.Null))
-                | MessageLengthIsEven -> 
-                    Message (InputSuccess "Thank you! The message was valid.")
-                | MessageLengthIsOdd ->
-                    Message (InputError ("The message is invalid (odd number of characters)!", ErrorType.Validation))
+            let validate = function
+            | EmptyMessage -> 
+                InputError ("No input received.", ErrorType.Null)
+            | MessageLengthIsEven -> 
+                InputSuccess ("Thank you! The message was valid.")
+            | MessageLengthIsOdd ->
+                InputError ("The message is invalid (odd number of characters)!", ErrorType.Validation)
 
             let line = Console.ReadLine ()
             let cmd = 
                 match line with
                 | Exit -> Exit
-                | Message(input) -> msg input
+                | Message(input) -> Message (validate input)
 
             mailbox.Self <! cmd
 
