@@ -2,7 +2,6 @@ namespace WinTail
 
 open System
 open Akkling
-open System.Security.Cryptography
 
 module Actors =
     open Messages
@@ -56,12 +55,12 @@ module Actors =
         match message with
         | Start -> 
             doPrintInstructions () |> continued
+        | Continue ->
+            getAndValidateInput () |> ignored
         | Message msg ->
             consoleWriter <! msg |> continued
         | Exit -> 
             mailbox.System.Terminate() |> ignored
-        | _ -> 
-            getAndValidateInput () |> ignored
 
     let consoleWriterActor (message: InputResult) =  
         let printInColor color message =
