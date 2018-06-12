@@ -7,11 +7,14 @@ let main argv =
     // initialize an actor system
     use myActorSystem = System.create "my-system" (Configuration.load())
     
-    // make your first actors using the 'spawn' function
     let consoleWriterActor = 
         spawn myActorSystem "consoleWriterActor" (props (actorOf Actors.consoleWriterActor))
+
+    let validationActor = 
+        spawn myActorSystem "validationActor" (props (actorOf2 (Actors.validationActor consoleWriterActor)))
+
     let consoleReaderActor = 
-        spawn myActorSystem "consoleReaderActor" (props (actorOf2 (Actors.consoleReaderActor consoleWriterActor)))
+        spawn myActorSystem "consoleReaderActor" (props (actorOf2 (Actors.consoleReaderActor validationActor)))
 
     // tell the consoleReader actor to begin
     consoleReaderActor <! Actors.Start
