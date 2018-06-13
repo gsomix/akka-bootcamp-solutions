@@ -11,16 +11,17 @@ module Actors =
     | Continue
     | Exit
 
-    let validationActor (consoleWriter: IActorRef<InputResult>) (mailbox: Actor<string>) message =
+    let validationActor (consoleWriter: IActorRef<InputResult>) (mailbox: Actor<string>) (message: string) =
         let sender: IActorRef<Command> = mailbox.Sender()
 
-        let (|EmptyMessage|MessageLengthIsEven|MessageLengthIsOdd|) (msg:string) =
+        let (|EmptyMessage|MessageLengthIsEven|MessageLengthIsOdd|) (msg: string) =
             match msg.Length, msg.Length % 2 with
             | 0, _ -> EmptyMessage
             | _, 0 -> MessageLengthIsEven
             | _, _ -> MessageLengthIsOdd
 
-        let validate = function
+        let validate (msg: string) = 
+            match msg with
             | EmptyMessage -> 
                 InputError ("No input received.", ErrorType.Null)
             | MessageLengthIsEven -> 
@@ -33,24 +34,26 @@ module Actors =
         
         ignored ()
 
-    let consoleReaderActor (validation: IActorRef<string>) (mailbox: Actor<Command>) message = 
+    let consoleReaderActor (validation: IActorRef<string>) (mailbox: Actor<Command>) (message: Command) = 
         let printInstructions () =
             Console.WriteLine "Write whatever you want into the console!"
             Console.WriteLine "Some entries will pass validation, and some won't...\n\n"
             Console.WriteLine "Type 'exit' to quit this application at any time.\n"
 
-        let continued () = mailbox.Self <! Continue |> ignored
-
-        let processInput() = 
-            let line = Console.ReadLine()
-            match line.ToLower() with
+        let processInput () = 
+            let line = Console.ReadLine ()
+            match line.ToLower () with
             | "exit" -> mailbox.Self <! Exit
             | _ -> validation <! line
 
         match message with
-        | Start -> printInstructions () |> continued
-        | Continue -> processInput () |> ignored
-        | Exit -> mailbox.System.Terminate() |> ignored
+        | Start -> 
+            printInstructions ()
+            mailbox.Self <! Continue
+        | Continue -> processInput ()
+        | Exit -> mailbox.System.Terminate () |> ignore
+
+        ignored ()
 
     let consoleWriterActor (message: InputResult) =  
         let printInColor color message =
