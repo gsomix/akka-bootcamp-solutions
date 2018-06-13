@@ -2,6 +2,7 @@ namespace WinTail
 
 open System
 open Akkling
+open System.Net.Sockets
 
 module Actors =
     open Messages
@@ -56,9 +57,9 @@ module Actors =
         ignored ()
 
     let consoleWriterActor (message: InputResult) =  
-        let printInColor color message =
+        let printInColor color (msg: string) =
             Console.ForegroundColor <- color
-            Console.WriteLine (message.ToString ())
+            Console.WriteLine msg
             Console.ResetColor ()
 
         match message with
