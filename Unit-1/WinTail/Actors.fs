@@ -2,7 +2,6 @@ namespace WinTail
 
 open System
 open Akkling
-open System.Net.Sockets
 
 module Actors =
     open Messages
