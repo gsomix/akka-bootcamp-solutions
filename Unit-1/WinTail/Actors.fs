@@ -30,14 +30,13 @@ module Actors =
         match message with
         | EmptyMessage -> 
             consoleWriter <! InputError("Input was blank. Please try again.\n", ErrorType.Null)
-            sender <! Continue
         | IsFileUri _ ->
             consoleWriter <! InputSuccess(sprintf "Starting processing for %s" message)
             tailCoordinator <! StartTail(message, consoleWriter)
         | _ ->
             consoleWriter <! InputError (sprintf "%s is not an existing URI on disk." message, ErrorType.Validation)
-            sender <! Continue
         
+        sender <! Continue
         ignored ()
 
     let tailActor (filePath: string) (reporter: IActorRef<InputResult>) (mailbox: Actor<FileCommand>) =
@@ -82,7 +81,7 @@ module Actors =
         let processInput () = 
             let line = Console.ReadLine ()
             match line.ToLower () with
-            | "exit" -> mailbox.Self <! Exit
+            | ":exit" -> mailbox.Self <! Exit
             | _ -> validation <! line
 
         match message with
