@@ -3,11 +3,9 @@ namespace WinTail
 open System
 open System.IO
 open Akkling
-open Newtonsoft.Json
 
 module Actors =
     open Messages
-    open FileUtility
 
     type Command = 
     | Start
@@ -43,15 +41,19 @@ module Actors =
         ignored ()
 
     let tailActor (filePath: string) (reporter: IActorRef<InputResult>) (mailbox: Actor<FileCommand>) =
-        let fullPath = Path.GetFullPath(filePath)
-        let observer = new FileObserver(mailbox.Self, fullPath)
-        do observer.Start()
+        let self = mailbox.Self
 
-        let fileStream = new FileStream(fullPath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
+        let fullFilePath = Path.GetFullPath filePath
+        let fileNameOnly = Path.GetFileName fullFilePath
+        let watcher = FileUtility.Watch(fullFilePath,
+                        onChange = (fun e -> self <! FileWrite(e.Name)),
+                        onError = (fun e -> self <! FileError(fileNameOnly, e.GetException () |> string)))
+
+        let fileStream = new FileStream(fullFilePath, FileMode.Open, FileAccess.Read, FileShare.ReadWrite)
         let fileStreamReader = new StreamReader(fileStream, Text.Encoding.UTF8)
         let text = fileStreamReader.ReadToEnd ()
-        do mailbox.Self <! InitialRead(filePath, text)
         
+        do self <! InitialRead(filePath, text)
         let rec loop () = actor {
             let! message = mailbox.Receive ()
             match message with

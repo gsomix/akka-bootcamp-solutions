@@ -2,23 +2,19 @@ namespace WinTail
 
 open System
 open System.IO
-open Akkling
 
-[<AutoOpen>]
-module FileUtility =
-    open Messages
+type FileUtility =
+    static member Watch (fullFilePath: string, onChange: FileSystemEventArgs -> unit, onError: ErrorEventArgs -> unit) =
+        let fileDir = Path.GetDirectoryName fullFilePath
+        let fileNameOnly = Path.GetFileName fullFilePath
+        let notifyFilter = NotifyFilters.FileName ||| NotifyFilters.LastWrite
+        let watcher = 
+            new FileSystemWatcher(fileDir, fileNameOnly,
+                NotifyFilter = notifyFilter,
+                EnableRaisingEvents = true)
 
-    type FileObserver(tailActor: IActorRef<FileCommand>, filePath: string) =
-        let fileDir = Path.GetDirectoryName filePath
-        let fileNameOnly = Path.GetFileName filePath
-        let mutable watcher = null : FileSystemWatcher
+        watcher.Changed.Add (fun e -> if e.ChangeType = WatcherChangeTypes.Changed then onChange e else ())
+        watcher.Error.Add (onError)
 
-        member this.Start () =
-            watcher <- new FileSystemWatcher(fileDir, fileNameOnly)
-            watcher.NotifyFilter <- NotifyFilters.FileName ||| NotifyFilters.LastWrite
-            watcher.Changed.Add (fun e -> if e.ChangeType = WatcherChangeTypes.Changed then tailActor <! FileWrite(e.Name) else ())
-            watcher.Error.Add (fun e -> tailActor <! FileError(fileNameOnly, (e.GetException ()).Message))
-            watcher.EnableRaisingEvents <- true
-
-        interface IDisposable with
-            member this.Dispose () = watcher.Dispose ()
+        { new IDisposable with
+            member this.Dispose () = watcher.Dispose () }
